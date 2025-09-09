@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color:white;
+  color: black;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  align-items: center;
+  justify-content: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Custom cursor styles */
+.cursor-interactive {
+  cursor: none !important;
+}
+
+/* Enhanced hover effects for interactive elements */
+select:hover,
+.bg-blue-100:hover,
+.bg-green-100:hover,
+.bg-yellow-100:hover,
+.bg-purple-100:hover,
+.bg-cyan-300:hover,
+.bg-red-300:hover,
+.bg-pink-300:hover,
+.bg-indigo-300:hover,
+.bg-teal-300:hover,
+.bg-orange-300:hover,
+.bg-lime-300:hover,
+.bg-gray-300:hover,
+.bg-emerald-300:hover,
+.bg-violet-300:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth transitions for all interactive elements */
+select,
+.bg-blue-100,
+.bg-green-100,
+.bg-yellow-100,
+.bg-purple-100,
+.bg-cyan-300,
+.bg-red-300,
+.bg-pink-300,
+.bg-indigo-300,
+.bg-teal-300,
+.bg-orange-300,
+.bg-lime-300,
+.bg-gray-300,
+.bg-emerald-300,
+.bg-violet-300 {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Fluid Background Animations */
+@keyframes floatingBubbles {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+    opacity: 0.7;
+  }
+  25% {
+    transform: translateY(-20px) scale(1.05);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(-40px) scale(1.1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-20px) scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes floatingParticles {
+  0%, 100% {
+    transform: translateY(0px) translateX(0px) scale(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-30px) translateX(10px) scale(1.2);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-60px) translateX(-10px) scale(1.4);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-30px) translateX(15px) scale(1.1);
+    opacity: 0.5;
+  }
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateX(0%) scaleY(1);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateX(5%) scaleY(1.1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(-3%) scaleY(1.2);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translateX(8%) scaleY(1.05);
+    opacity: 0.4;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  /* background-color: #1a1a1a; */
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    /* color: #213547; */
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  /* button {
+    /* background-color: #f9f9f9; */
+  /* } */ 
+}
