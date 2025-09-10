@@ -677,7 +677,7 @@ export default function Dashboard() {
     const handleLogin = (e) => {
       e.preventDefault();
       // Static login credentials
-      if (username === "sugar" && password === "sugar123") {
+      if (username === "suger" && password === "suger123") {
         setIsLoggedIn(true);
         setLoginError("");
       } else {
@@ -1590,3 +1590,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
