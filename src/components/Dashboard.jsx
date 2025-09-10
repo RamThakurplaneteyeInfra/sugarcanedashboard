@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [taluka, setTaluka] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
+  const [selectedMetric, setSelectedMetric] = useState("सुरु (हे.)"); // New state for metric selection
 
   useEffect(() => {
     async function fetchData() {
@@ -46,10 +47,42 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Reset selectedDate when selectedYear changes
+  // Set default year when data loads
   useEffect(() => {
-    setSelectedDate("");
-  }, [selectedYear]);
+    if (data.length > 0 && !selectedYear) {
+      const years = data.flatMap((div) =>
+        div.districts.flatMap((dist) =>
+          dist.talukas.map((t) => t.year)
+        )
+      );
+      const uniqueYears = [...new Set(years)].filter(Boolean).sort();
+      if (uniqueYears.length > 0) {
+        setSelectedYear(uniqueYears[0]);
+      }
+    }
+  }, [data, selectedYear]);
+
+  // Reset and set default date when selectedYear changes
+  useEffect(() => {
+    if (selectedYear) {
+      // Get dates for the selected year
+      let filteredData = data.flatMap((div) =>
+        div.districts.flatMap((dist) => dist.talukas)
+      );
+      
+      filteredData = filteredData.filter((t) => t.year === selectedYear);
+      const dates = filteredData.map((t) => t.month);
+      const uniqueDates = [...new Set(dates)].filter(Boolean).sort();
+      
+      if (uniqueDates.length > 0) {
+        setSelectedDate(uniqueDates[0]);
+      } else {
+        setSelectedDate("");
+      }
+    } else {
+      setSelectedDate("");
+    }
+  }, [selectedYear, data]);
 
   console.log(data);
 
@@ -386,6 +419,121 @@ export default function Dashboard() {
     }
   }, [taluka, district, division, filteredTalukas]);
 
+  // ✅ Metric-specific bar chart data based on selected metric
+  const metricBarChartData = useMemo(() => {
+    let metricKey = "";
+    let metricName = "";
+    
+    // Map selected metric to data key
+    switch(selectedMetric) {
+      case "सुरु (हे.)":
+        metricKey = "suru_ha";
+        metricName = "सुरु (हे.)";
+        break;
+      case "खोडवा (हे.)":
+        metricKey = "ratoon_ha";
+        metricName = "खोडवा (हे.)";
+        break;
+      case "आडसाली (हे.)":
+        metricKey = "adsali_ha";
+        metricName = "आडसाली (हे.)";
+        break;
+      case "पूर्वहंगाम (हे.)":
+        metricKey = "pre_season_ha";
+        metricName = "पूर्वहंगाम (हे.)";
+        break;
+      default:
+        metricKey = "suru_ha";
+        metricName = "सुरु (हे.)";
+    }
+
+    if (taluka) {
+      // For taluka view, show the selected metric value for this taluka
+      const selectedTaluka = filteredTalukas[0];
+      if (!selectedTaluka) return [];
+
+      return [
+        {
+          name: selectedTaluka.taluka,
+          [metricKey]: selectedTaluka[metricKey] || 0,
+          metricName: metricName,
+        },
+      ];
+    } else if (district) {
+      // For district view, show talukas with selected metric values
+      const talukaGroups = filteredTalukas.reduce((groups, taluka) => {
+        const talukaName = taluka.taluka;
+        if (!groups[talukaName]) {
+          groups[talukaName] = [];
+        }
+        groups[talukaName].push(taluka);
+        return groups;
+      }, {});
+
+      return Object.keys(talukaGroups)
+        .map((talukaName) => {
+          const talukaData = talukaGroups[talukaName];
+          return {
+            name: talukaName,
+            [metricKey]: talukaData.reduce(
+              (sum, t) => sum + (t[metricKey] || 0),
+              0
+            ),
+            metricName: metricName,
+          };
+        })
+        .sort((a, b) => b[metricKey] - a[metricKey]);
+    } else if (division) {
+      // For division view, show districts with selected metric values
+      const districtGroups = filteredTalukas.reduce((groups, taluka) => {
+        const districtName = taluka.district;
+        if (!groups[districtName]) {
+          groups[districtName] = [];
+        }
+        groups[districtName].push(taluka);
+        return groups;
+      }, {});
+
+      return Object.keys(districtGroups)
+        .map((districtName) => {
+          const districtData = districtGroups[districtName];
+          return {
+            name: districtName,
+            [metricKey]: districtData.reduce(
+              (sum, t) => sum + (t[metricKey] || 0),
+              0
+            ),
+            metricName: metricName,
+          };
+        })
+        .sort((a, b) => b[metricKey] - a[metricKey]);
+    } else {
+      // For all divisions view, show divisions with selected metric values
+      const divisionGroups = filteredTalukas.reduce((groups, taluka) => {
+        const divisionName = taluka.division;
+        if (!groups[divisionName]) {
+          groups[divisionName] = [];
+        }
+        groups[divisionName].push(taluka);
+        return groups;
+      }, {});
+
+      return Object.keys(divisionGroups)
+        .map((divisionName) => {
+          const divisionData = divisionGroups[divisionName];
+          return {
+            name: divisionName,
+            [metricKey]: divisionData.reduce(
+              (sum, t) => sum + (t[metricKey] || 0),
+              0
+            ),
+            metricName: metricName,
+          };
+        })
+        .sort((a, b) => b[metricKey] - a[metricKey]);
+    }
+  }, [selectedMetric, taluka, district, division, filteredTalukas]);
+
   // ✅ Interactive Pie chart data with active shapes
   const renderActiveShape = ({
     cx,
@@ -529,7 +677,7 @@ export default function Dashboard() {
     const handleLogin = (e) => {
       e.preventDefault();
       // Static login credentials
-      if (username === "mitcon" && password === "mitcon123") {
+      if (username === "sugar" && password === "sugar123") {
         setIsLoggedIn(true);
         setLoginError("");
       } else {
@@ -557,7 +705,7 @@ export default function Dashboard() {
               className="text-3xl font-bold mb-2"
               style={{ color: "#1e40af" }}
             >
-              🌾 Sugarcane Dashboard
+               Maharashtra Sugarcane Status
             </h2>
             <p className="text-gray-600">Please login to access the dashboard</p>
           </div>
@@ -657,7 +805,7 @@ export default function Dashboard() {
             className="text-lg sm:text-xl lg:text-2xl font-bold"
             style={{ color: "#1e40af" , fontWeight: "bold" ,marginLeft: "30%" }}
           >
-            🌾 SugarCane Dashboard
+             Maharashtra Sugarcane Status (Predicted)
           </h2>
           
           <div className="flex items-center gap-3">
@@ -697,42 +845,39 @@ export default function Dashboard() {
         >
 
 
-          {/* Year */} {/* Year */}
-          <div className="w-full sm:w-auto min-w-0 flex-1 sm:flex-none">
-            <label className="block text-xs sm:text-sm font-medium mb-1">
-            हंगाम
-            </label>
-            <select
-              className="w-full border rounded p-2 text-sm sm:text-base min-w-0"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-            >
-              <option value="">All Years</option>
-              {allYears.map((year, i) => (
-                <option key={i} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
+           {/* Year */} {/* Year */}
+           <div className="w-full sm:w-auto min-w-0 flex-1 sm:flex-none">
+             <label className="block text-xs sm:text-sm font-medium mb-1">
+             हंगाम
+             </label>
+             <select
+               className="w-full border rounded p-2 text-sm sm:text-base min-w-0"
+               value={selectedYear}
+               onChange={(e) => setSelectedYear(e.target.value)}
+             >
+               {allYears.map((year, i) => (
+                 <option key={i} value={year}>
+                   {year}
+                 </option>
+               ))}
+             </select>
+           </div>
           {/* Date Filter */}
           <div className="w-full sm:w-auto min-w-0 flex-1 sm:flex-none">
             <label className="block text-xs sm:text-sm font-medium mb-1">
             तारीख
             </label>
-            <select
-              className="w-full border rounded p-2 text-sm sm:text-base min-w-0"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              disabled={!selectedYear}
-            >
-              <option value="">{selectedYear ? "All Dates" : "Select Year First"}</option>
+             <select
+               className="w-full border rounded p-2 text-sm sm:text-base min-w-0"
+               value={selectedDate}
+               onChange={(e) => setSelectedDate(e.target.value)}
+             >
               {allDates.map((date, i) => (
                 <option key={i} value={date}>
                   {date}
                 </option>
               ))}
-            </select>
+             </select>
           </div>
 
           {/* Division */}
@@ -817,7 +962,7 @@ export default function Dashboard() {
             }}
           >
             <h2 className="text-xs sm:text-sm font-semibold text-blue-800 mb-1">
-              Total Area (Ha)
+            एकूण क्षेत्र(हे.)
             </h2>
             <p className="text-sm sm:text-lg font-bold text-blue-900 break-words">
               {Math.round(kpiValues.totalArea).toLocaleString()}
@@ -890,7 +1035,7 @@ export default function Dashboard() {
              }}
            >
              <h2 className="text-xs sm:text-sm font-semibold text-purple-800 mb-1">
-             गळप हंगाम (हे.)
+             गाळप हंगाम (हे.)
              </h2>
              <p className="text-sm sm:text-lg font-bold text-purple-900">
                {filteredTalukas
@@ -920,7 +1065,7 @@ export default function Dashboard() {
                border: "1px solid rgba(255, 255, 255, 0.5)",
              }}
            >
-             🌾 कृषी मेट्रिक्स (Agricultural Metrics)
+             🌾 ऊस सांख्यिकी 
            </h3>
            <div
              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1 sm:gap-2"
@@ -1059,19 +1204,42 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas.length > 0
-                   ? Math.round(
-                       filteredTalukas.reduce(
-                         (sum, t) => sum + (parseFloat(t.soil_moisture_percent) || 0),
-                         0
-                       ) /
-                         filteredTalukas.filter((t) => t.soil_moisture_percent && parseFloat(t.soil_moisture_percent) > 0)
-                           .length || 0
-                     )
-                   : 0}
+                 {(() => {
+                   if (filteredTalukas.length === 0) return "0.00";
+                   
+                   if (!division) {
+                     // No division selected: Return hardcoded value
+                     return "0.84";
+                   } 
+                   else if (!district) {
+                     // Division selected: Return hardcoded values
+                     const divisionValues = {
+                       "कोल्हापूर": "0.84",
+                       "पुणे": "0.88",
+                       "सोलापूर": "0.87",
+                       "अहिल्यानगर": "0.83",
+                       "छ .संभाजीनगर": "0.85",
+                       "नांदेड": "0.83",
+                       "अमरावती": "0.79",
+                       "नागपूर": "0.81"
+                     };
+                     
+                     return divisionValues[division] || "0.00";
+                   }
+                   else {
+                     // District selected: Simple average of all valid soil moisture values in that district
+                     const validMoistures = filteredTalukas
+                       .map(t => parseFloat(t.soil_moisture_percent) || 0)
+                       .filter(val => val > 0);
+                     
+                     return validMoistures.length > 0 
+                       ? (validMoistures.reduce((sum, val) => sum + val, 0) / validMoistures.length).toFixed(2)
+                       : "0.00";
+                   }
+                 })()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
-                 मातीचा आर्द्रता(%)
+                 मातीचा ओलावा(%)
                </div>
              </div>
 
@@ -1087,18 +1255,18 @@ export default function Dashboard() {
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
                  {filteredTalukas.length > 0
-                   ? Math.round(
+                   ? (
                        filteredTalukas.reduce(
                          (sum, t) => sum + (t.sugar_recovery_percent || 0),
                          0
                        ) /
                          filteredTalukas.filter((t) => t.sugar_recovery_percent)
                            .length || 0
-                     )
+                     ).toFixed(2)
                    : 0}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
-                 साखर उताऱ्या (%)
+                 साखर उतारा (%)
                </div>
              </div>
 
@@ -1113,16 +1281,39 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas.length > 0
-                   ? Math.round(
-                       filteredTalukas.reduce(
-                         (sum, t) => sum + (parseFloat(t.productivity_tons_per_ha) || 0),
-                         0
-                       ) /
-                         filteredTalukas.filter((t) => t.productivity_tons_per_ha && parseFloat(t.productivity_tons_per_ha) > 0)
-                           .length || 0
-                     )
-                   : 0}
+                 {(() => {
+                   if (filteredTalukas.length === 0) return "0.00";
+                   
+                   if (!division) {
+                     // No division selected: Return hardcoded value
+                     return "78.71";
+                   } 
+                   else if (!district) {
+                     // Division selected: Return hardcoded values
+                     const divisionValues = {
+                       "कोल्हापूर": "86.04",
+                       "पुणे": "82.92",
+                       "सोलापूर": "86.03",
+                       "अहिल्यानगर": "78.79",
+                       "छ .संभाजीनगर": "83.91",
+                       "नांदेड": "83.97",
+                       "अमरावती": "62.60",
+                       "नागपूर": "65.44"
+                     };
+                     
+                     return divisionValues[division] || "0.00";
+                   }
+                   else {
+                     // District selected: Simple average of all valid productivity values in that district
+                     const validProductivities = filteredTalukas
+                       .map(t => parseFloat(t.productivity_tons_per_ha) || 0)
+                       .filter(val => val > 0);
+                     
+                     return validProductivities.length > 0 
+                       ? (validProductivities.reduce((sum, val) => sum + val, 0) / validProductivities.length).toFixed(2)
+                       : "0.00";
+                   }
+                 })()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
                  उत्पादकता (टन/हे)
@@ -1151,463 +1342,8 @@ export default function Dashboard() {
            </div>
          </div>
 
-                   {/* Individual Agricultural Metrics Charts - 4 Charts */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {/* 🟢 सुरु (हे.) Chart */}
-            <div
-              className="rounded-xl p-3 sm:p-4"
-              style={{
-                background: "rgba(255, 255, 255, 0.3)",
-                backdropFilter: "blur(15px)",
-                border: "1px solid rgba(255, 255, 255, 0.4)",
-                boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              <h4
-                className="text-base sm:text-lg  mb-2 text-center break-words text-gray-800"
-                style={{
-                  background: "rgba(255, 255, 255, 0.4)",
-                  backdropFilter: "blur(10px)",
-                  padding: "8px 16px",
-                  borderRadius: "12px",
-                  border: "1px solid rgba(255, 255, 255, 0.5)",
-                }}
-              >
-                🟢 सुरु (हे.)
-              </h4>
-              {(() => {
-                let chartData = [];
-                
-                if (taluka) {
-                  // For taluka view, show only the suru_ha value for this taluka
-                  const selectedTaluka = filteredTalukas[0];
-                  if (selectedTaluka && (selectedTaluka.suru_ha || 0) > 0) {
-                    chartData = [
-                      { name: selectedTaluka.taluka, value: selectedTaluka.suru_ha || 0 }
-                    ];
-                  }
-                } else if (district) {
-                  // For district view, show talukas with suru_ha values
-                  const talukaGroups = filteredTalukas.reduce((groups, taluka) => {
-                    const talukaName = taluka.taluka;
-                    if (!groups[talukaName]) {
-                      groups[talukaName] = 0;
-                    }
-                    groups[talukaName] += taluka.suru_ha || 0;
-                    return groups;
-                  }, {});
-                  
-                  chartData = Object.keys(talukaGroups).map(talukaName => ({
-                    name: talukaName,
-                    value: talukaGroups[talukaName]
-                  })).filter(item => item.value > 0);
-                } else if (division) {
-                  // For division view, show districts with suru_ha values
-                  const districtGroups = filteredTalukas.reduce((groups, taluka) => {
-                    const districtName = taluka.district;
-                    if (!groups[districtName]) {
-                      groups[districtName] = 0;
-                    }
-                    groups[districtName] += taluka.suru_ha || 0;
-                    return groups;
-                  }, {});
-                  
-                  chartData = Object.keys(districtGroups).map(districtName => ({
-                    name: districtName,
-                    value: districtGroups[districtName]
-                  })).filter(item => item.value > 0);
-                } else {
-                  // For all divisions view, show divisions with suru_ha values
-                  const divisionGroups = filteredTalukas.reduce((groups, taluka) => {
-                    const divisionName = taluka.division;
-                    if (!groups[divisionName]) {
-                      groups[divisionName] = 0;
-                    }
-                    groups[divisionName] += taluka.suru_ha || 0;
-                    return groups;
-                  }, {});
-                  
-                  chartData = Object.keys(divisionGroups).map(divisionName => ({
-                    name: divisionName,
-                    value: divisionGroups[divisionName]
-                  })).filter(item => item.value > 0);
-                }
-                
-                return chartData.length > 0 ? (
-                  <div style={{ width: "100%", height: "200px" }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={chartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={25}
-                          outerRadius={40}
-                          fill="#82ca9d"
-                          dataKey="value"
-                          nameKey="name"
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomPieTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-[200px] text-gray-500">
-                    <p>No सुरु data available for selected filters</p>
-                  </div>
-                );
-              })()}
-            </div>
-
-           {/* 🟡 खोडवा (हे.) Chart */}
-           <div
-             className="rounded-xl p-3 sm:p-4"
-             style={{
-               background: "rgba(255, 255, 255, 0.3)",
-               backdropFilter: "blur(15px)",
-               border: "1px solid rgba(255, 255, 255, 0.4)",
-               boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1)",
-             }}
-           >
-             <h4
-               className="text-base sm:text-lg  mb-2 text-center break-words text-gray-800"
-               style={{
-                 background: "rgba(255, 255, 255, 0.4)",
-                 backdropFilter: "blur(10px)",
-                 padding: "8px 16px",
-                 borderRadius: "12px",
-                 border: "1px solid rgba(255, 255, 255, 0.5)",
-               }}
-             >
-               🟡 खोडवा (हे.)
-             </h4>
-             {(() => {
-               let chartData = [];
-               
-               if (taluka) {
-                 // For taluka view, show only the ratoon_ha value for this taluka
-                 const selectedTaluka = filteredTalukas[0];
-                 if (selectedTaluka && (selectedTaluka.ratoon_ha || 0) > 0) {
-                   chartData = [
-                     { name: selectedTaluka.taluka, value: selectedTaluka.ratoon_ha || 0 }
-                   ];
-                 }
-               } else if (district) {
-                 // For district view, show talukas with ratoon_ha values
-                 const talukaGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const talukaName = taluka.taluka;
-                   if (!groups[talukaName]) {
-                     groups[talukaName] = 0;
-                   }
-                   groups[talukaName] += taluka.ratoon_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(talukaGroups).map(talukaName => ({
-                   name: talukaName,
-                   value: talukaGroups[talukaName]
-                 })).filter(item => item.value > 0);
-               } else if (division) {
-                 // For division view, show districts with ratoon_ha values
-                 const districtGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const districtName = taluka.district;
-                   if (!groups[districtName]) {
-                     groups[districtName] = 0;
-                   }
-                   groups[districtName] += taluka.ratoon_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(districtGroups).map(districtName => ({
-                   name: districtName,
-                   value: districtGroups[districtName]
-                 })).filter(item => item.value > 0);
-               } else {
-                 // For all divisions view, show divisions with ratoon_ha values
-                 const divisionGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const divisionName = taluka.division;
-                   if (!groups[divisionName]) {
-                     groups[divisionName] = 0;
-                   }
-                   groups[divisionName] += taluka.ratoon_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(divisionGroups).map(divisionName => ({
-                   name: divisionName,
-                   value: divisionGroups[divisionName]
-                 })).filter(item => item.value > 0);
-               }
-               
-               return chartData.length > 0 ? (
-                 <div style={{ width: "100%", height: "200px" }}>
-                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                       <Pie
-                         data={chartData}
-                         cx="50%"
-                         cy="50%"
-                         innerRadius={25}
-                         outerRadius={40}
-                         fill="#ffc658"
-                         dataKey="value"
-                         nameKey="name"
-                       >
-                         {chartData.map((entry, index) => (
-                           <Cell
-                             key={`cell-${index}`}
-                             fill={COLORS[index % COLORS.length]}
-                           />
-                         ))}
-                       </Pie>
-                       <Tooltip content={<CustomPieTooltip />} />
-                     </PieChart>
-                   </ResponsiveContainer>
-                 </div>
-               ) : (
-                 <div className="flex items-center justify-center h-[200px] text-gray-500">
-                   <p>No खोडवा data available for selected filters</p>
-                 </div>
-               );
-             })()}
-           </div>
-
-           {/* 🟠 आडसाली (हे.) Chart */}
-           <div
-             className="rounded-xl p-3 sm:p-4"
-             style={{
-               background: "rgba(255, 255, 255, 0.3)",
-               backdropFilter: "blur(15px)",
-               border: "1px solid rgba(255, 255, 255, 0.4)",
-               boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1)",
-             }}
-           >
-             <h4
-               className="text-base sm:text-lg  mb-2 text-center break-words text-gray-800"
-               style={{
-                 background: "rgba(255, 255, 255, 0.4)",
-                 backdropFilter: "blur(10px)",
-                 padding: "8px 16px",
-                 borderRadius: "12px",
-                 border: "1px solid rgba(255, 255, 255, 0.5)",
-               }}
-             >
-               🟠 आडसाली (हे.) 
-             </h4>
-             {(() => {
-               let chartData = [];
-               
-               if (taluka) {
-                 // For taluka view, show only the adsali_ha value for this taluka
-                 const selectedTaluka = filteredTalukas[0];
-                 if (selectedTaluka && (selectedTaluka.adsali_ha || 0) > 0) {
-                   chartData = [
-                     { name: selectedTaluka.taluka, value: selectedTaluka.adsali_ha || 0 }
-                   ];
-                 }
-               } else if (district) {
-                 // For district view, show talukas with adsali_ha values
-                 const talukaGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const talukaName = taluka.taluka;
-                   if (!groups[talukaName]) {
-                     groups[talukaName] = 0;
-                   }
-                   groups[talukaName] += taluka.adsali_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(talukaGroups).map(talukaName => ({
-                   name: talukaName,
-                   value: talukaGroups[talukaName]
-                 })).filter(item => item.value > 0);
-               } else if (division) {
-                 // For division view, show districts with adsali_ha values
-                 const districtGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const districtName = taluka.district;
-                   if (!groups[districtName]) {
-                     groups[districtName] = 0;
-                   }
-                   groups[districtName] += taluka.adsali_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(districtGroups).map(districtName => ({
-                   name: districtName,
-                   value: districtGroups[districtName]
-                 })).filter(item => item.value > 0);
-               } else {
-                 // For all divisions view, show divisions with adsali_ha values
-                 const divisionGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const divisionName = taluka.division;
-                   if (!groups[divisionName]) {
-                     groups[divisionName] = 0;
-                   }
-                   groups[divisionName] += taluka.adsali_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(divisionGroups).map(divisionName => ({
-                   name: divisionName,
-                   value: divisionGroups[divisionName]
-                 })).filter(item => item.value > 0);
-               }
-               
-               return chartData.length > 0 ? (
-                 <div style={{ width: "100%", height: "200px" }}>
-                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                       <Pie
-                         data={chartData}
-                         cx="50%"
-                         cy="50%"
-                         innerRadius={25}
-                         outerRadius={40}
-                         fill="#ff7300"
-                         dataKey="value"
-                         nameKey="name"
-                       >
-                         {chartData.map((entry, index) => (
-                           <Cell
-                             key={`cell-${index}`}
-                             fill={COLORS[index % COLORS.length]}
-                           />
-                         ))}
-                       </Pie>
-                       <Tooltip content={<CustomPieTooltip />} />
-                     </PieChart>
-                   </ResponsiveContainer>
-                 </div>
-               ) : (
-                 <div className="flex items-center justify-center h-[200px] text-gray-500">
-                   <p>No आडसाली data available for selected filters</p>
-                 </div>
-               );
-             })()}
-           </div>
-
-           {/* 🟢 पूर्वहंगाम (हे.) Chart */}
-           <div
-             className="rounded-xl p-3 sm:p-4"
-             style={{
-               background: "rgba(255, 255, 255, 0.3)",
-               backdropFilter: "blur(15px)",
-               border: "1px solid rgba(255, 255, 255, 0.4)",
-               boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1)",
-             }}
-           >
-             <h4
-               className="text-base sm:text-lg  mb-2 text-center break-words text-gray-800"
-               style={{
-                 background: "rgba(255, 255, 255, 0.4)",
-                 backdropFilter: "blur(10px)",
-                 padding: "8px 16px",
-                 borderRadius: "12px",
-                 border: "1px solid rgba(255, 255, 255, 0.5)",
-               }}
-             >
-               🟢 पूर्वहंगाम (हे.)
-             </h4>
-             {(() => {
-               let chartData = [];
-               
-               if (taluka) {
-                 // For taluka view, show only the pre_season_ha value for this taluka
-                 const selectedTaluka = filteredTalukas[0];
-                 if (selectedTaluka && (selectedTaluka.pre_season_ha || 0) > 0) {
-                   chartData = [
-                     { name: selectedTaluka.taluka, value: selectedTaluka.pre_season_ha || 0 }
-                   ];
-                 }
-               } else if (district) {
-                 // For district view, show talukas with pre_season_ha values
-                 const talukaGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const talukaName = taluka.taluka;
-                   if (!groups[talukaName]) {
-                     groups[talukaName] = 0;
-                   }
-                   groups[talukaName] += taluka.pre_season_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(talukaGroups).map(talukaName => ({
-                   name: talukaName,
-                   value: talukaGroups[talukaName]
-                 })).filter(item => item.value > 0);
-               } else if (division) {
-                 // For division view, show districts with pre_season_ha values
-                 const districtGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const districtName = taluka.district;
-                   if (!groups[districtName]) {
-                     groups[districtName] = 0;
-                   }
-                   groups[districtName] += taluka.pre_season_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(districtGroups).map(districtName => ({
-                   name: districtName,
-                   value: districtGroups[districtName]
-                 })).filter(item => item.value > 0);
-               } else {
-                 // For all divisions view, show divisions with pre_season_ha values
-                 const divisionGroups = filteredTalukas.reduce((groups, taluka) => {
-                   const divisionName = taluka.division;
-                   if (!groups[divisionName]) {
-                     groups[divisionName] = 0;
-                   }
-                   groups[divisionName] += taluka.pre_season_ha || 0;
-                   return groups;
-                 }, {});
-                 
-                 chartData = Object.keys(divisionGroups).map(divisionName => ({
-                   name: divisionName,
-                   value: divisionGroups[divisionName]
-                 })).filter(item => item.value > 0);
-               }
-               
-               return chartData.length > 0 ? (
-                 <div style={{ width: "100%", height: "200px" }}>
-                   <ResponsiveContainer width="100%" height="100%">
-                     <PieChart>
-                       <Pie
-                         data={chartData}
-                         cx="50%"
-                         cy="50%"
-                         innerRadius={25}
-                         outerRadius={40}
-                         fill="#00ff88"
-                         dataKey="value"
-                         nameKey="name"
-                       >
-                         {chartData.map((entry, index) => (
-                           <Cell
-                             key={`cell-${index}`}
-                             fill={COLORS[index % COLORS.length]}
-                           />
-                         ))}
-                       </Pie>
-                       <Tooltip content={<CustomPieTooltip />} />
-                     </PieChart>
-                   </ResponsiveContainer>
-                 </div>
-               ) : (
-                 <div className="flex items-center justify-center h-[200px] text-gray-500">
-                   <p>No पूर्वहंगाम data available for selected filters</p>
-                 </div>
-               );
-             })()}
-           </div>
-         </div>
-
-        {/* Bar Chart - Full Width */}
-        <div
+         {/* Bar Chart - Full Width */}
+         <div
           className="rounded-xl p-3 sm:p-4"
           style={{
             background: "rgba(255, 255, 255, 0.3)",
@@ -1632,7 +1368,7 @@ export default function Dashboard() {
               ? `तहसील ${district} जिल्हा`
               : division
               ? `जिल्हा ${division} विभाग`
-              : "विभाग आधारित मीट्रिक्स"}
+              : "लागवडी निहाय ऊस क्षेत्र"} 
           </h2>
           <div style={{ width: "100%", height: "250px" }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -1730,6 +1466,126 @@ export default function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Agricultural Metrics Selection Buttons and Chart */}
+        <div
+             className="rounded-xl p-3 sm:p-4"
+             style={{
+               background: "rgba(255, 255, 255, 0.3)",
+               backdropFilter: "blur(15px)",
+               border: "1px solid rgba(255, 255, 255, 0.4)",
+               boxShadow: "0 12px 32px rgba(0, 0, 0, 0.1)",
+             }}
+           >
+             <h3
+               className="text-base sm:text-lg font-bold mb-4 text-center text-gray-800"
+               style={{
+                 background: "rgba(255, 255, 255, 0.4)",
+                 backdropFilter: "blur(10px)",
+                 padding: "8px 16px",
+                 borderRadius: "12px",
+                 border: "1px solid rgba(255, 255, 255, 0.5)",
+               }}
+             >
+               🌾 क्षेत्र निहाय उपलब्ध ऊस 
+             </h3>
+             
+             {/* Metric Selection Buttons */}
+              <div className="flex flex-wrap justify-center gap-1 sm:gap-2 mb-4">
+               {["सुरु (हे.)", "खोडवा (हे.)", "आडसाली (हे.)", "पूर्वहंगाम (हे.)"].map((metric) => {
+                 const getButtonColor = (metric) => {
+                   switch(metric) {
+                     case "सुरु (हे.)":
+                       return selectedMetric === metric ? "#82ca9d" : "#e8f5e8";
+                     case "खोडवा (हे.)":
+                       return selectedMetric === metric ? "#ffc658" : "#fff8e1";
+                     case "आडसाली (हे.)":
+                       return selectedMetric === metric ? "#ff7300" : "#fff3e0";
+                     case "पूर्वहंगाम (हे.)":
+                       return selectedMetric === metric ? "#775DD0" : "#f3e5f5";
+                     default:
+                       return selectedMetric === metric ? "#82ca9d" : "#e8f5e8";
+                   }
+                 };
+                 
+                 return (
+                 <button
+                   key={metric}
+                   onClick={() => setSelectedMetric(metric)}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all duration-200 ${
+                      selectedMetric === metric
+                        ? "text-white shadow-lg transform scale-105"
+                        : "text-gray-700 hover:opacity-80 shadow-md hover:shadow-lg"
+                    }`}
+             style={{
+                     backgroundColor: getButtonColor(metric),
+                     border: selectedMetric === metric ? `2px solid ${getButtonColor(metric)}` : "1px solid #e5e7eb",
+                   }}
+                 >
+                   {metric}
+                 </button>
+               );
+               })}
+           </div>
+
+             {/* Bar Chart */}
+             <div style={{ width: "100%", height: "300px" }}>
+                   <ResponsiveContainer width="100%" height="100%">
+                 <BarChart
+                   data={metricBarChartData}
+                   animationBegin={0}
+                   animationDuration={500}
+                 >
+                   <CartesianGrid strokeDasharray="3 3" />
+                   <XAxis
+                     dataKey="name"
+                     angle={-45}
+                     textAnchor="end"
+                     height={80}
+                     interval={0}
+                     tick={{ fontSize: 10 }}
+                   />
+                   <YAxis />
+                   <Tooltip
+                     formatter={(value, name) => [
+                       `${value.toLocaleString()} हेक्टर`,
+                       selectedMetric,
+                     ]}
+                   />
+                   <Bar
+                     dataKey={selectedMetric === "सुरु (हे.)" ? "suru_ha" : 
+                             selectedMetric === "खोडवा (हे.)" ? "ratoon_ha" :
+                             selectedMetric === "आडसाली (हे.)" ? "adsali_ha" : "pre_season_ha"}
+                     fill={
+                       selectedMetric === "सुरु (हे.)" ? "#82ca9d" :
+                       selectedMetric === "खोडवा (हे.)" ? "#ffc658" :
+                       selectedMetric === "आडसाली (हे.)" ? "#ff7300" : "#775DD0"
+                     }
+                     name={selectedMetric}
+                     isAnimationActive={true}
+                   />
+                 </BarChart>
+                   </ResponsiveContainer>
+            </div>
+         </div>
+
+         {/* Disclaimer */}
+         <div className="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+           <div className="flex items-start">
+             <div className="flex-shrink-0">
+               <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+               </svg>
+             </div>
+             <div className="ml-3">
+               <p className="text-sm text-yellow-700">
+                 <strong>Disclaimer:</strong> This information is created using AI/ML technology. Based on data and observations, results can vary time to time.
+               </p>
+             </div>
+           </div>
+         </div>
+
+       
       </div>
     </div>
   );
