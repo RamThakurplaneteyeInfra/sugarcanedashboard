@@ -1037,7 +1037,7 @@ export default function Dashboard() {
              }}
            >
              <h2 className="text-xs sm:text-sm font-semibold text-purple-800 mb-1">
-              पुधील गाळप हंगाम (हे.)
+              पुढील गाळप हंगाम (हे.)
              </h2>
              <p className="text-sm sm:text-lg font-bold text-purple-900">
                {Math.round(filteredTalukas
@@ -1632,4 +1632,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
