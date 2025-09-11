@@ -1037,11 +1037,11 @@ export default function Dashboard() {
              }}
            >
              <h2 className="text-xs sm:text-sm font-semibold text-purple-800 mb-1">
-             गाळप हंगाम (हे.)
+              पुधील गाळप हंगाम (हे.)
              </h2>
              <p className="text-sm sm:text-lg font-bold text-purple-900">
-               {filteredTalukas
-                 .reduce((sum, t) => sum + (t.season_2025_26 || 0), 0)
+               {Math.round(filteredTalukas
+                 .reduce((sum, t) => sum + (t.season_2025_26 || 0), 0))
                  .toLocaleString()}
              </p>
            </div>
@@ -1085,12 +1085,12 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.suru_ha || 0) + (t.ratoon_ha || 0) + (t.adsali_ha || 0) + (t.pre_season_ha || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.estimated_area_ha || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
-                 एकूण अंदाजित क्षेत्र (हे.)
+                 उर्वरित क्षेत्र (हे.)
                </div>
              </div>
 
@@ -1105,8 +1105,8 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.suru_ha || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.suru_ha || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
@@ -1125,8 +1125,8 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.ratoon_ha || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.ratoon_ha || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
@@ -1145,8 +1145,8 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.adsali_ha || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.adsali_ha || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
@@ -1165,8 +1165,8 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.pre_season_ha || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.pre_season_ha || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
@@ -1210,23 +1210,43 @@ export default function Dashboard() {
                    if (filteredTalukas.length === 0) return "0.00";
                    
                    if (!division) {
-                     // No division selected: Return hardcoded value
-                     return "0.84";
+                     // No division selected: Return hardcoded value for २०२५-२०२६, actual for others
+                     if (selectedYear === "२०२५-२०२६") {
+                       return "0.84";
+                     } else {
+                       const validMoistures = filteredTalukas
+                         .map(t => parseFloat(t.soil_moisture_percent) || 0)
+                         .filter(val => val > 0);
+                       
+                       return validMoistures.length > 0 
+                         ? (validMoistures.reduce((sum, val) => sum + val, 0) / validMoistures.length).toFixed(2)
+                         : "0.00";
+                     }
                    } 
                    else if (!district) {
-                     // Division selected: Return hardcoded values
-                     const divisionValues = {
-                       "कोल्हापूर": "0.84",
-                       "पुणे": "0.88",
-                       "सोलापूर": "0.87",
-                       "अहिल्यानगर": "0.83",
-                       "छ .संभाजीनगर": "0.85",
-                       "नांदेड": "0.83",
-                       "अमरावती": "0.79",
-                       "नागपूर": "0.81"
-                     };
-                     
-                     return divisionValues[division] || "0.00";
+                     // Division selected: Return hardcoded values for २०२५-२०२६, actual for others
+                     if (selectedYear === "२०२५-२०२६") {
+                       const divisionValues = {
+                         "कोल्हापूर": "0.75",
+                         "पुणे": "0.87",
+                         "सोलापूर": "0.87",
+                         "अहिल्यानगर": "0.83",
+                         "छ .संभाजीनगर": "0.84",
+                         "नांदेड": "0.82",
+                         "अमरावती": "0.78",
+                         "नागपूर": "0.80"
+                       };
+                       
+                       return divisionValues[division] || "0.00";
+                     } else {
+                       const validMoistures = filteredTalukas
+                         .map(t => parseFloat(t.soil_moisture_percent) || 0)
+                         .filter(val => val > 0);
+                       
+                       return validMoistures.length > 0 
+                         ? (validMoistures.reduce((sum, val) => sum + val, 0) / validMoistures.length).toFixed(2)
+                         : "0.00";
+                     }
                    }
                    else {
                      // District selected: Simple average of all valid soil moisture values in that district
@@ -1287,23 +1307,43 @@ export default function Dashboard() {
                    if (filteredTalukas.length === 0) return "0.00";
                    
                    if (!division) {
-                     // No division selected: Return hardcoded value
-                     return "78.71";
+                     // No division selected: Return hardcoded value for २०२५-२०२६, actual for others
+                     if (selectedYear === "२०२५-२०२६") {
+                       return "78.71";
+                     } else {
+                       const validProductivities = filteredTalukas
+                         .map(t => parseFloat(t.productivity_tons_per_ha) || 0)
+                         .filter(val => val > 0);
+                       
+                       return validProductivities.length > 0 
+                         ? (validProductivities.reduce((sum, val) => sum + val, 0) / validProductivities.length).toFixed(2)
+                         : "0.00";
+                     }
                    } 
                    else if (!district) {
-                     // Division selected: Return hardcoded values
-                     const divisionValues = {
-                       "कोल्हापूर": "86.04",
-                       "पुणे": "82.92",
-                       "सोलापूर": "86.03",
-                       "अहिल्यानगर": "78.79",
-                       "छ .संभाजीनगर": "83.91",
-                       "नांदेड": "83.97",
-                       "अमरावती": "62.60",
-                       "नागपूर": "65.44"
-                     };
-                     
-                     return divisionValues[division] || "0.00";
+                     // Division selected: Return hardcoded values for २०२५-२०२६, actual for others
+                     if (selectedYear === "२०२५-२०२६") {
+                       const divisionValues = {
+                         "कोल्हापूर": "86.04",
+                         "पुणे": "82.92",
+                         "सोलापूर": "86.03",
+                         "अहिल्यानगर": "78.79",
+                         "छ .संभाजीनगर": "83.91",
+                         "नांदेड": "83.97",
+                         "अमरावती": "62.60",
+                         "नागपूर": "65.44"
+                       };
+                       
+                       return divisionValues[division] || "0.00";
+                     } else {
+                       const validProductivities = filteredTalukas
+                         .map(t => parseFloat(t.productivity_tons_per_ha) || 0)
+                         .filter(val => val > 0);
+                       
+                       return validProductivities.length > 0 
+                         ? (validProductivities.reduce((sum, val) => sum + val, 0) / validProductivities.length).toFixed(2)
+                         : "0.00";
+                     }
                    }
                    else {
                      // District selected: Simple average of all valid productivity values in that district
@@ -1313,7 +1353,7 @@ export default function Dashboard() {
                      
                      return validProductivities.length > 0 
                        ? (validProductivities.reduce((sum, val) => sum + val, 0) / validProductivities.length).toFixed(2)
-                       : "0.00";
+                       : 0;
                    }
                  })()}
                </div>
@@ -1333,8 +1373,8 @@ export default function Dashboard() {
                }}
              >
                <div className="text-sm sm:text-base font-bold text-cyan-900 break-words">
-                 {filteredTalukas
-                   .reduce((sum, t) => sum + (t.production_tons || 0), 0)
+                 {Math.round(filteredTalukas
+                   .reduce((sum, t) => sum + (t.production_tons || 0), 0))
                    .toLocaleString()}
                </div>
                <div className="text-xs text-cyan-800 mt-1 leading-tight font-medium">
@@ -1592,6 +1632,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
-
