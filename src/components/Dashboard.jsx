@@ -805,7 +805,7 @@ export default function Dashboard() {
         >
           <h2
             className="text-lg sm:text-xl lg:text-2xl font-bold"
-            style={{ color: "#1e40af" , fontWeight: "bold" ,marginLeft: "30%" }}
+            style={{ color: "#1e40af" , fontWeight: "bold" ,marginLeft: "20%" }}
           >
              Maharashtra Sugarcane Status (Predicted)
           </h2>
@@ -1632,3 +1632,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
