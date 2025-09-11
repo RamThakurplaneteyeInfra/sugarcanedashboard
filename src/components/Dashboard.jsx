@@ -57,7 +57,9 @@ export default function Dashboard() {
       );
       const uniqueYears = [...new Set(years)].filter(Boolean).sort();
       if (uniqueYears.length > 0) {
-        setSelectedYear(uniqueYears[0]);
+        // setSelectedYear(uniqueYears[0]);
+        const defaultYear = uniqueYears.includes("२०२५-२०२६") ? "२०२५-२०२६" : uniqueYears[0];
+        setSelectedYear(defaultYear);
       }
     }
   }, [data, selectedYear]);
@@ -1590,5 +1592,6 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
