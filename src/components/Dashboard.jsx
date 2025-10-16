@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   Sector,
 } from "recharts";
+import YearComparison from "./YearComparison";
 
 const COLORS = [
   "#0088FE",
@@ -1610,6 +1611,7 @@ export default function Dashboard() {
                    </ResponsiveContainer>
             </div>
          </div>
+         <YearComparison data={data} selectedDivision={division} selectedDistrict={district} selectedTaluka={taluka} />
 
          {/* Disclaimer */}
          <div className="mt-8 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
@@ -1632,5 +1634,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
