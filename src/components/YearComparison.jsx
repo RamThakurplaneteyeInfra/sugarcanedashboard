@@ -1,14 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTaluka }) => {
-  // Flatten the nested data structure and apply filters
+  const [selectedMetric, setSelectedMetric] = useState("उत्पादन (टन)");
+
+  const metrics = [
+    { key: "उत्पादकता (टन/हे)", label: "उत्पादकता (टन/हे)" },
+    { key: "मातीचा आर्द्रता(%)", label: "मातीचा आर्द्रता(%)" },
+    { key: "साखर उतारा (%)", label: "साखर उतारा (%)" },
+    { key: "उत्पादन (टन)", label: "उत्पादन (टन)" },
+    { key: "एकूण क्षेत्र (हे.)", label: "एकूण क्षेत्र (हे.)" }
+  ];
+
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
-    
-    // Flatten the nested structure: divisions -> districts -> talukas
-    const flattenedData = data.flatMap(div => 
-      div.districts.flatMap(dist => 
+
+    const flattenedData = data.flatMap(div =>
+      div.districts.flatMap(dist =>
         dist.talukas.map(taluka => ({
           ...taluka,
           division: div.division,
@@ -16,8 +24,7 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
         }))
       )
     );
-    
-    // Apply filters
+
     return flattenedData.filter(item => {
       if (selectedDivision && item.division !== selectedDivision) return false;
       if (selectedDistrict && item.district !== selectedDistrict) return false;
@@ -26,19 +33,16 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
     });
   }, [data, selectedDivision, selectedDistrict, selectedTaluka]);
 
-  // Calculate comparison data for August months
   const comparisonData = useMemo(() => {
     const august2024 = filteredData.filter(item => item.month === "ऑगस्ट २०२४");
     const august2025 = filteredData.filter(item => item.month === "ऑगस्ट २०२५");
 
     const calculateMetric = (monthData, metric) => {
       if (monthData.length === 0) return 0;
-      
       const validValues = monthData
         .map(item => parseFloat(item[metric]) || 0)
         .filter(val => val > 0);
-      
-      return validValues.length > 0 
+      return validValues.length > 0
         ? validValues.reduce((sum, val) => sum + val, 0) / validValues.length
         : 0;
     };
@@ -74,9 +78,13 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
         "३१ ऑगस्ट २०२५": Math.round(calculateTotal(august2025, "estimated_area_ha"))
       }
     ];
-    
+
     return result;
   }, [filteredData]);
+
+  const displayData = useMemo(() => {
+    return comparisonData.filter(item => item.metric === selectedMetric);
+  }, [comparisonData, selectedMetric]);
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -123,10 +131,29 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
         </p>
       </div>
 
+      {/* Metric Selection Cards */}
+      <div className="mb-6">
+        <div className="flex flex-wrap gap-3">
+          {metrics.map((metric) => (
+            <button
+              key={metric.key}
+              onClick={() => setSelectedMetric(metric.key)}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
+                selectedMetric === metric.key
+                  ? 'bg-blue-600 text-white shadow-md transform scale-105'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {metric.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={comparisonData}
+            data={displayData}
             margin={{
               top: 20,
               right: 30,
@@ -135,28 +162,28 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
             }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="metric" 
+            <XAxis
+              dataKey="metric"
               tick={{ fontSize: 12 }}
               angle={-45}
               textAnchor="end"
               height={80}
             />
-            <YAxis 
+            <YAxis
               tick={{ fontSize: 12 }}
               tickFormatter={(value) => value.toLocaleString()}
             />
             <Tooltip content={<CustomTooltip />} />
             <Legend content={<CustomLegend />} />
-            <Bar 
-              dataKey="३१ ऑगस्ट २०२४" 
-              fill="#3b82f6" 
+            <Bar
+              dataKey="३१ ऑगस्ट २०२४"
+              fill="#3b82f6"
               name="३१ ऑगस्ट २०२४"
               radius={[2, 2, 0, 0]}
             />
-            <Bar 
-              dataKey="३१ ऑगस्ट २०२५" 
-              fill="#10b981" 
+            <Bar
+              dataKey="३१ ऑगस्ट २०२५"
+              fill="#10b981"
               name="३१ ऑगस्ट २०२५"
               radius={[2, 2, 0, 0]}
             />
@@ -174,7 +201,6 @@ const YearComparison = ({ data, selectedDivision, selectedDistrict, selectedTalu
             <p>एकूण उत्पादन: {comparisonData[3]["३१ ऑगस्ट २०२४"].toLocaleString()} टन</p>
           </div>
         </div>
-        
         <div className="bg-green-50 p-4 rounded-lg">
           <h4 className="font-semibold text-green-800 mb-2">३१ ऑगस्ट २०२५ सारांश</h4>
           <div className="space-y-1 text-sm">
